@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<!-- saved from url=(0072)https://www.inf.u-szeged.hu/~szabivan/download/logika/groundtermgen.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        
+    </head>
+    
+    <body>
+    <script>
+    
+    function randrange(min, max) {
+        return Math.floor(Math.random()*(max-min) + min);
+    }
+    
+    function sample(array, n) {
+        //console.log("n: " + n);
+        //console.log([...array])
+        return shuffle([...array]).slice(0,n);
+    }
+    function all(array) {
+        return array.indexOf(false) != -1;
+    }
+    
+    function shuffle(array) {
+      let currentIndex = array.length,  randomIndex;
+    
+      // While there remain elements to shuffle...
+      while (currentIndex != 0) {
+    
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+    
+        // And swap it with the current element.
+        [array[currentIndex], array[randomIndex]] = [
+          array[randomIndex], array[currentIndex]];
+      }
+    
+      return array;
+    }
+    
+    function choice(array) {
+        return array[Math.floor(Math.random() * array.length)]
+    }
+    
+    
+    var _pj;
+    function _pj_snippets(container) {
+        function _assert(comp, msg) {
+            function PJAssertionError(message) {
+                this.name = "PJAssertionError";
+                this.message = (message || "Custom error PJAssertionError");
+                if (((typeof Error.captureStackTrace) === "function")) {
+                    Error.captureStackTrace(this, this.constructor);
+                } else {
+                    this.stack = new Error(message).stack;
+                }
+            }
+            PJAssertionError.prototype = Object.create(Error.prototype);
+            PJAssertionError.prototype.constructor = PJAssertionError;
+            msg = (msg || "Assertion failed.");
+            if ((! comp)) {
+                throw new PJAssertionError(msg);
+            }
+        }
+        function in_es6(left, right) {
+            if (((right instanceof Array) || ((typeof right) === "string"))) {
+                return (right.indexOf(left) > (- 1));
+            } else {
+                if (((right instanceof Map) || (right instanceof Set) || (right instanceof WeakMap) || (right instanceof WeakSet))) {
+                    return right.has(left);
+                } else {
+                    return (left in right);
+                }
+            }
+        }
+        container["_assert"] = _assert;
+        container["in_es6"] = in_es6;
+        return container;
+    }
+    _pj = {};
+    _pj_snippets(_pj);
+    class Term_problem {
+        constructor(wrap_width, use_base64, question, score) {
+            this.width = Number.parseInt(wrap_width);
+            this.use_base64 = use_base64;
+            this.question = question;
+            this.score = score;
+            this.termtex = "";
+            this.term_unicode = "";
+            this.hint = [];
+            this.answers = [];
+            this.good = [];
+            this.bad = [];
+            this.vars = ["x", "y", "z", "u", "v", "w"];
+            this.keywords = ["a", "b", "f", "g", "h", "q", "p", "r"];
+           
+            this.consts = shuffle(this.keywords.slice(0, 2));
+            this.funcs = shuffle(this.keywords.slice(2, 5));
+            this.pred = shuffle(this.keywords.slice(5,8));
+            this.con = ["\\wedge", "\\vee", "\\to", "\\leftrightarrow"];
+            this.neg = ["", "\\neg"];
+        }
+        create_task() {
+            var alapterm, atk, chars, con, f1, f2, func, max_count, minden_mas, mmk, neg_1, neg_2, pred, pred_1, pred_2, preds, quant, variables;
+            var get_terms_wo_var;
+            var get_wrong_terms;
+            variables = sample(this.vars, 2);
+            [f1, f2] = sample(this.funcs, 2);
+            func = new Array(sample(this.consts, 1), f1, f2);
+            //console.log("func00: " + func[0][0])
+            pred = sample(this.pred, 2);
+            con = sample(this.con, 1);
+            neg_1 = choice(this.neg);
+            neg_2 = choice(this.neg);
+            console.log("func:" + func + " pred: " + pred);
+            function random_term(depth = 2, skip_var = false, swap_f = false) {
+                var F1, F2, c, t;
+                c = ["v", "f0"];
+                if ((depth >= 1)) {
+                    c.push("f1");
+                    c.push("f2");
+                }
+                //if(depth == 0) return;
+                if (skip_var) {
+                    c.splice(c.indexOf("v"), 1);
+                }
+                //console.log("skipvar: " + skip_var +"c: " + c)
+                t = choice(c);
+                [F1, F2] = ((! swap_f) ? [func[1], func[2]] : [func[2], func[1]]);
+                ////console.log(typeof t)
+                if (t == "v") {
+                    return choice(variables);
+                } else {
+                    if (t == "f0"){
+                        return choice(func[0]);
+                    } else {
+                        if (t == "f1") {
+                            return `${F1} ( ${random_term((depth - 1), skip_var, swap_f)} )`;
+                        } else {
+                            if (t == "f2") {
+                                return `${F2} ( ${random_term((depth - 1), skip_var, swap_f)}, ${random_term((depth - 1), skip_var, swap_f)} )`;
+                            }
+                        }
+                    }
+                }
+                throw "Unreachable"
+            };
+            while (true) {
+                pred_1 = `${pred[0]} ( ${random_term()}, ${random_term()} )`;
+                pred_2 = `${pred[1]} ( ${random_term()}, ${random_term()} )`;
+                preds = (pred_1 + pred_2);
+                chars = [variables, func[0], func[1], func[2]];
+                for (var i = 0; i < 3; i++) {
+                  if( !(pred_1 + pred_2).includes(func[i]) ) break;
+                }                
+                if ( i == 3 && (((60 <= preds.trim().length) && (preds.trim().length <= 70)) && all(function () {
+        var _pj_a = [], _pj_b = chars;
+        for (var _pj_c = 0, _pj_d = _pj_b.length; (_pj_c < _pj_d); _pj_c += 1) {
+            var c = _pj_b[_pj_c];
+            _pj_a.push(_pj.in_es6(c, preds));
+        }
+        return _pj_a;
+    }
+    .call(this)))) {
+                    break;
+                }
+            }
+            quant = `\\forall ${variables[0]} \\forall ${variables[1]} ~ `;
+            con = `${con[0]}`;
+            this.termtex = `${quant} ( ~ ${neg_1} ${pred_1} ~ ${con} ~ ${neg_2} ${pred_2} ~ )`;
+            get_terms_wo_var = () => {
+                var terms_wo_var;
+                terms_wo_var = new Set(func[0]);
+                while ((terms_wo_var.size < 3)) {
+                    terms_wo_var.add(random_term(1, true));
+                }
+                while ((terms_wo_var.size < 6)) {
+                    terms_wo_var.add(random_term(2, true));
+                }
+                return Array.from(terms_wo_var);
+            };
+            alapterm = get_terms_wo_var();
+            console.log(alapterm);
+            get_wrong_terms = () => {
+                var terms;
+                terms = new Set(variables);
+                while ((terms.size < 4)) {
+                    terms.add(random_term(1, false, true));
+                }
+                while ((terms.size < 7)) {
+                    terms.add(random_term(2, false, true));
+                }
+                while ((terms.size < 9)) {
+                    terms.add(`${choice(pred)} ( ${random_term(2, false, true)} )`);
+                }
+                while ((terms.size < 11)) {
+                    terms.add(`${choice(pred)} ( ${random_term(2, true)} )`);
+                }
+                if (terms.has(func[0][0])) {
+                    terms.delete(func[0][0]);
+                }
+                return Array.from(terms);
+            };
+            minden_mas = get_wrong_terms();
+            console.log(minden_mas);
+            max_count = 8;
+            // _pj._assert(((alapterm.length + minden_mas.length) >= max_count), null);
+            // _pj._assert((alapterm.length >= 5), null);
+            atk = randrange(3, 5);
+            mmk = (max_count - atk);
+            // _pj._assert((minden_mas.length >= mmk), null);
+            var alaptermek = [];
+            alaptermek.push(alapterm[0]); // konstans
+            
+            for(const kozepes of alapterm.filter(x => x.length > 10 && x.length <17).slice(0,Math.floor(Math.random()*2+1))) {
+                alaptermek.push(kozepes);
+            } // rovid alapterm
+            alaptermek.push(alapterm.filter(x => x.length > 16)[0]);
+            console.log("alaptermek hossz: " + alaptermek.length)
+           
+
+            var nemalaptermek = [];
+            nemalaptermek.push(minden_mas[Math.round(Math.random())]);
+            for(const rossz of nemalaptermek) {
+              console.log("Mindenmás: " + rossz);
+            }
+            //itt volt hiba mert a hosz merete nem volt megfelelo es volt hogy filter ures tombot dobot vissza
+            nemalaptermek.push(sample(pred, 1) + "(" + shuffle(alapterm.filter(x => x.length > 6 && x.length <12))[0] + ")");
+            for(const rossz of nemalaptermek) {
+              console.log("Formula: " + rossz);
+            }
+            const asd = Array.from(shuffle(minden_mas.filter(x => x.length > 1)).slice(0, max_count-alaptermek.length-2));
+            console.log(asd);
+            for(const rossz of asd) {
+                nemalaptermek.push(rossz);
+                console.log("Rossz: " + rossz);
+            }
+            
+            this.good = alaptermek;
+            this.bad = nemalaptermek;
+            //console.log("atk: " + atk + " alaptermek: " + alaptermek.length)
+            this.answers = shuffle(alaptermek.concat(nemalaptermek));
+        }
+        get_question() {
+            return this.question;
+        }
+        get_answers() {
+            return this.answers;
+        }
+        get_score() {
+            return this.score;
+        }
+        get_hints() {
+            return this.hint;
+        }
+        get_base_term_tex() {
+            return this.termtex;
+        }
+        get_base_term_unicode() {
+            return this.termtex
+                .replace(/\\forall/g, "∀")
+                .replace(/\s/g, "")
+                .replace("~", " ")
+                .replace(/~/g, "")
+                .replace(/\\vee/g, " ∨ ")
+                .replace(/\\to/g, " → ")
+                .replace(/\\leftrightarrow/g, " ↔ ")
+                .replace(/\\wedge/g, " ∧ ")
+                .replace(/\\neg/g, "¬");
+        }
+        get_good() {
+            return this.good;
+        }
+        get_bad() {
+            return this.bad;
+        }
+        // show(eq = null) {
+        //     return show_cnf(this.termtex, {"width": this.width, "use_base64": this.use_base64, "extra_line": eq});
+        // }
+    }
+    function main() {
+        var conf, config, config_path, p, rel_path, result;
+        result = {};
+        // config = new ConfigParser();
+        // //config_path = os.path.dirname(os.path.abspath(__file__));
+        // rel_path = "config.ini";
+        // config.read(rel_path, {"encoding": "utf-8"});
+        conf = {
+            "wrap_width": 3,
+            "use_base64": true,
+            "question": "ez ide fölösleges de még bennt hagyom",
+            "score": 1
+        }
+        p = new Term_problem(conf["wrap_width"], conf["use_base64"], conf["question"], conf["score"]);
+        p.create_task();
+        result["Q"] = p.get_question();
+        result["A"] = p.get_answers();
+        result["S"] = p.get_score();
+        result[0] = p.get_base_term_tex();
+        result["U"] = p.get_base_term_unicode();
+        result["G"] = p.get_good();
+        result["B"] = p.get_bad();
+        // //console.log(result[0])
+        // //console.log(result["A"])
+        
+        document.getElementById("latex-2").innerText = String(result[0])
+        answerNode = document.getElementById("answers");
+        answerNode.innerHTML = ""
+        //console.log(result["G"])
+        //console.log(result["B"])
+        console.log(result["A"]);
+        for(const element of result["A"]) {
+            answerNode.innerHTML += "<td>\t" + element.replace(/\s/g, "") + (result["G"].includes(element)?" ☑":" ☐") + "\t</td>";
+        } 
+        document.getElementById("unicode").innerHTML = "<td>" + result["U"] + "</td>";
+
+        return result;
+    }
+    
+    </script>
+    <button id="generateButton" onclick="main()">Generálj alapterm ellenőrzőset!</button>
+    <table>
+        
+        <tbody><tr id="questionRow">
+            <td valign="top">
+                Feladat:
+            </td> 
+            <td id="question">
+                Jelöld be, hogy az alábbiak közül melyek az alaptermek abban az elsőrendű nyelvben, amelyikben a megadott string egy formula!
+                A formulában <i>x, y, z, u, v, w</i> változók, a többi jel egyike sem az.
+            </td>
+        </tr>
+        <tr>
+            <td>LaTeX:</td>
+            <td id="latex-2">...</td>
+        </tr>
+        <tr>
+            <td>
+                Unicode:
+            </td>
+            <td id="unicode">
+                ...
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Megoldás:
+            </td>
+            <td>
+                <table border="1">
+                    <tbody>
+                        <tr id="answers"></tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody></table>
+
+
+
+
+    
+
+</body></html>
